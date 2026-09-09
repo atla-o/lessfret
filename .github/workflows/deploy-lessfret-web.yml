@@ -17,7 +17,7 @@ permissions:
   id-token: write
 
 env:
-  PROJECT_ID: deo-holding
+  PROJECT_ID: devo-holding
   REGION: us-west1
   SERVICE: lessfret-web
 
