@@ -24,10 +24,13 @@ Do not default to local execution for Next.js, copy, legal pages, intake stubs, 
 
 ## Data and hosting
 
-- Production app data lives on **GCP**, in a project family under Devo.
+- Production app data lives on **GCP** project `devo-holding` (org `atla-o.com`, folder `Devo`).
 - **Do not use Firebase.**
-- Do not deploy unless a human explicitly asks. Local preview is enough for this pass.
-- Public host: https://lessfret.devoutshaman.com on **Cloud Run / GCP**. Do not use Cloudflare Workers, Firebase, or Vercel for this product.
+- Do not deploy from a cloud agent unless a human explicitly asks. Push to `main` auto-deploys via GitHub Actions (`.github/workflows/deploy-lessfret-web.yml`).
+- Public host: https://lessfret.devoutshaman.com on Cloud Run service **`lessfret-web`** (`devo-holding`, `us-west1`). That host is the production / beta surface — no separate beta host. Cloudflare DNS-only, no Workers. Not Firebase or Vercel.
+- Production image: `Dockerfile` with Next.js `output: "standalone"`. Listens on `0.0.0.0:$PORT` (default 8080).
+- Org policy blocks `allUsers`. Never `--allow-unauthenticated`. Public access is `--no-invoker-iam-check` (`run.googleapis.com/invoker-iam-disabled`).
+- Optional `cloudbuild.yaml` is for a later Cloud Build trigger; GitHub Actions is the primary deploy path. See README for WIF secrets and the domain cutover off `devo-web`.
 
 ## What the product is
 
@@ -61,6 +64,7 @@ Do not collapse these products into Lessfret. Cross-link lightly as Devo family,
 ## Code notes for this pass
 
 - Next.js App Router, TypeScript, Tailwind, shadcn/ui
+- Production: `output: "standalone"` in `next.config.ts`; `npm ci` needs `package-lock.json`
 - Intake and board are stubs: sessionStorage plus labeled example data
 - Shared legal strings live in `src/lib/legal.ts` — change the disclaimer there, not as one-off page copy
 - Keep the black/white, spare Devo-adjacent aesthetic
