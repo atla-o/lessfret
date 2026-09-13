@@ -158,10 +158,26 @@ function asPersisted(id: string, data: DocumentData): PersistedIntake {
   return { ...rest, id } as PersistedIntake;
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms = 8000) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("Firestore in GCP project devo-holding timed out."));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function listClientIntakes(clientKey: string, lane?: IntakeLane) {
-  const snapshot = await intakesCollection()
-    .where("clientKey", "==", clientKey)
-    .get();
+  const snapshot = await withTimeout(
+    intakesCollection().where("clientKey", "==", clientKey).get()
+  );
   const intakes = snapshot.docs
     .map((doc) => asPersisted(doc.id, doc.data()))
     .filter((item) => (lane ? item.lane === lane : true))
@@ -179,7 +195,7 @@ export async function createClientIntake(
     clientKey,
     createdAt: FieldValue.serverTimestamp(),
   };
-  await ref.set(record);
+  await withTimeout(ref.set(record));
   return asPersisted(ref.id, { ...input, clientKey });
 }
 

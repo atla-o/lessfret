@@ -20,7 +20,27 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(path, { ...init, headers, cache: "no-store" });
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 10000);
+  let response: Response;
+  try {
+    response = await window.fetch(path, {
+      ...init,
+      headers,
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: init.signal ?? controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        "Lessfret took too long to reach records in GCP project devo-holding."
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
   if (!response.ok) {
     throw new Error(await parseError(response));
   }

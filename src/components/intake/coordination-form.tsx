@@ -149,7 +149,7 @@ export function CoordinationForm() {
   const showFieldErrors = state === "invalid";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8" noValidate>
+    <form onSubmit={onSubmit} className="space-y-8" method="post" noValidate>
       <CrisisNotice />
       <ScopeNotice title="Coordination is not treatment">
         We help people navigate referrals, scheduling, records, visit prep, and

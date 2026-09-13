@@ -48,9 +48,13 @@ export function readIntakesSnapshot(): IntakesSnapshot {
   return snapshot;
 }
 
-export async function refreshIntakes() {
-  if (inflight) return inflight;
-  setSnapshot({ ...snapshot, loading: snapshot.intakes.length === 0, error: null });
+export async function refreshIntakes(force = false) {
+  if (inflight && !force) return inflight;
+  setSnapshot({
+    ...snapshot,
+    loading: snapshot.intakes.length === 0,
+    error: null,
+  });
   inflight = listIntakes()
     .then((result) => {
       setSnapshot({ intakes: result.intakes, loading: false, error: null });

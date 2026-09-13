@@ -191,7 +191,7 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
           <button
             type="button"
             className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-            onClick={() => void refreshIntakes()}
+            onClick={() => void refreshIntakes(true)}
           >
             Reload
           </button>
@@ -233,7 +233,7 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
         </p>
       ) : null}
 
-      {!loading && items.length === 0 ? (
+      {items.length === 0 && !loading ? (
         <div className="space-y-4 border border-dashed border-foreground/20 px-6 py-12 text-center">
           <p className="font-heading text-2xl">No coordination items yet.</p>
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
@@ -247,7 +247,7 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
             Start a coordination intake
           </Link>
         </div>
-      ) : !loading ? (
+      ) : items.length > 0 ? (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {statusOrder.map((status) => (
             <Column

@@ -26,7 +26,7 @@ export function IntakeSessionPanel() {
         <button
           type="button"
           className={cn(buttonVariants({ size: "lg" }))}
-          onClick={() => void refreshIntakes()}
+          onClick={() => void refreshIntakes(true)}
         >
           Try again
         </button>

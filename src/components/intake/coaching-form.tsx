@@ -133,7 +133,7 @@ export function CoachingForm() {
   const showFieldErrors = state === "invalid";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8" noValidate>
+    <form onSubmit={onSubmit} className="space-y-8" method="post" noValidate>
       <CrisisNotice />
       <ScopeNotice title="This is coaching, not therapy">
         Lessfret coaches in a wellness and life-coach lane. We do not provide
