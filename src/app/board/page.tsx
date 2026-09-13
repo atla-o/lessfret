@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { CoordinationBoard } from "@/components/board/coordination-board";
 import { ScopeNotice } from "@/components/form-notice";
+import { loadIntakesForRequest } from "@/lib/server/load-intakes";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Care-coordination board",
@@ -11,9 +14,11 @@ export const metadata: Metadata = {
 export default async function BoardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ examples?: string }>;
+  searchParams: Promise<{ examples?: string; saved?: string }>;
 }) {
-  const hideExamples = (await searchParams).examples === "hidden";
+  const params = await searchParams;
+  const hideExamples = params.examples === "hidden";
+  const { intakes, error } = await loadIntakesForRequest("coordination");
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-5 py-14 md:py-16">
@@ -34,7 +39,12 @@ export default async function BoardPage({
         Moving a card does not schedule a real visit or contact a provider.
         Status language describes logistics, not diagnoses or outcomes.
       </ScopeNotice>
-      <CoordinationBoard hideExamples={hideExamples} />
+      <CoordinationBoard
+        hideExamples={hideExamples}
+        initialIntakes={intakes}
+        loadError={error}
+        justSaved={params.saved === "1"}
+      />
     </div>
   );
 }

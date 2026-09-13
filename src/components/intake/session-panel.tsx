@@ -1,35 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatSubmittedAt } from "@/lib/format";
 import { coachingFocusLabels, pathwayLabels } from "@/lib/intake";
-import { refreshIntakes } from "@/lib/intakes-store";
-import { useIntakes } from "@/lib/use-intakes";
+import { loadIntakesForRequest } from "@/lib/server/load-intakes";
 
-export function IntakeSessionPanel() {
-  const { intakes, loading, error } = useIntakes();
+export async function IntakeSessionPanel() {
+  const { intakes, error } = await loadIntakesForRequest();
 
-  if (loading && intakes.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground" role="status">
-        Loading saved requests…
-      </p>
-    );
-  }
-
-  if (error && intakes.length === 0) {
+  if (error) {
     return (
       <div className="space-y-3 border border-destructive/30 px-4 py-4" role="alert">
         <p className="text-sm text-destructive">{error}</p>
-        <button
-          type="button"
-          className={cn(buttonVariants({ size: "lg" }))}
-          onClick={() => void refreshIntakes(true)}
-        >
-          Try again
-        </button>
       </div>
     );
   }

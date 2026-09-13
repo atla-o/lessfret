@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { SavedStatusForm } from "@/components/saved-status-form";
 import { StatusSelect } from "@/components/status-select";
 import { cn } from "@/lib/utils";
 import { formatSubmittedAt } from "@/lib/format";
@@ -23,14 +24,7 @@ import {
   subscribeExampleStatus,
 } from "@/lib/example-status";
 import { needLabels, pathwayLabels } from "@/lib/intake";
-import {
-  changeIntakeStatus,
-  refreshIntakes,
-  removeSavedIntake,
-  removeSavedLane,
-} from "@/lib/intakes-store";
-import type { PersistedCoordination } from "@/lib/records";
-import { useIntakes } from "@/lib/use-intakes";
+import type { PersistedCoordination, PersistedIntake } from "@/lib/records";
 
 function itemFromIntake(intake: PersistedCoordination): BoardItem {
   const need = intake.needs[0] ?? "scheduling";
@@ -51,13 +45,9 @@ function itemFromIntake(intake: PersistedCoordination): BoardItem {
 function Column({
   status,
   items,
-  onStatusChange,
-  onRemove,
 }: {
   status: BoardStatus;
   items: BoardItem[];
-  onStatusChange: (item: BoardItem, status: BoardStatus) => void;
-  onRemove: (item: BoardItem) => void;
 }) {
   return (
     <section className="flex min-w-[16.5rem] flex-1 flex-col border border-foreground/10 bg-background">
@@ -75,29 +65,14 @@ function Column({
             Nothing in this column.
           </p>
         ) : (
-          items.map((item) => (
-            <BoardCard
-              key={item.id}
-              item={item}
-              onStatusChange={onStatusChange}
-              onRemove={onRemove}
-            />
-          ))
+          items.map((item) => <BoardCard key={item.id} item={item} />)
         )}
       </div>
     </section>
   );
 }
 
-function BoardCard({
-  item,
-  onStatusChange,
-  onRemove,
-}: {
-  item: BoardItem;
-  onStatusChange: (item: BoardItem, status: BoardStatus) => void;
-  onRemove: (item: BoardItem) => void;
-}) {
+function BoardCard({ item }: { item: BoardItem }) {
   return (
     <article className="space-y-3 border border-foreground/10 px-3 py-3">
       <div className="flex flex-wrap gap-1.5">
@@ -117,35 +92,45 @@ function BoardCard({
       </div>
       <h3 className="text-sm font-medium leading-5">{item.title}</h3>
       <p className="text-sm leading-6 text-muted-foreground">{item.detail}</p>
-      <StatusSelect
-        label="Move this item"
-        value={item.status}
-        options={statusOrder}
-        labels={statusLabels}
-        onChange={(status) => onStatusChange(item, status)}
-      />
-      {!item.example ? (
-        <button
-          type="button"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          onClick={() => onRemove(item)}
-        >
-          Remove saved request
-        </button>
-      ) : null}
+      {item.example ? (
+        <StatusSelect
+          label="Move this item"
+          value={item.status}
+          options={statusOrder}
+          labels={statusLabels}
+          onChange={(status) => setExampleStatus(item.id, status)}
+        />
+      ) : (
+        <SavedStatusForm
+          id={item.id}
+          lane="coordination"
+          status={item.status}
+          options={statusOrder}
+          labels={statusLabels}
+        />
+      )}
     </article>
   );
 }
 
-export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
-  const { intakes, loading, error } = useIntakes();
+export function CoordinationBoard({
+  hideExamples,
+  initialIntakes,
+  loadError,
+  justSaved,
+}: {
+  hideExamples: boolean;
+  initialIntakes: PersistedIntake[];
+  loadError: string | null;
+  justSaved?: boolean;
+}) {
   const exampleStatus = useSyncExternalStore(
     subscribeExampleStatus,
     readExampleStatus,
     emptyExampleStatus
   );
 
-  const savedIntakes = intakes.filter(
+  const savedIntakes = initialIntakes.filter(
     (item): item is PersistedCoordination => item.lane === "coordination"
   );
 
@@ -164,16 +149,14 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
     return items.filter((item) => item.status === status);
   }
 
-  async function onStatusChange(item: BoardItem, status: BoardStatus) {
-    if (item.example) {
-      setExampleStatus(item.id, status);
-      return;
-    }
-    await changeIntakeStatus(item.id, status);
-  }
-
   return (
     <div className="space-y-6">
+      {justSaved ? (
+        <p className="border border-foreground/12 px-4 py-3 text-sm" role="status">
+          Coordination request saved to GCP project devo-holding. Refresh keeps
+          it here.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-3 border border-foreground/10 bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-muted-foreground">
           Cards marked <span className="text-foreground">Saved</span> live in
@@ -191,22 +174,6 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
           <button
             type="button"
             className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-            onClick={() => void refreshIntakes(true)}
-          >
-            Reload
-          </button>
-          {savedIntakes.length > 0 ? (
-            <button
-              type="button"
-              className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-              onClick={() => void removeSavedLane("coordination")}
-            >
-              Remove my saved requests
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
             onClick={() => clearExampleStatus()}
           >
             Reset example statuses
@@ -214,26 +181,13 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
         </div>
       </div>
 
-      {error ? (
-        <div className="space-y-3 border border-destructive/30 px-4 py-4" role="alert">
-          <p className="text-sm text-destructive">{error}</p>
-          <button
-            type="button"
-            className={cn(buttonVariants({ size: "lg" }))}
-            onClick={() => void refreshIntakes()}
-          >
-            Try again
-          </button>
+      {loadError ? (
+        <div className="border border-destructive/30 px-4 py-4" role="alert">
+          <p className="text-sm text-destructive">{loadError}</p>
         </div>
       ) : null}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground" role="status">
-          Loading saved coordination requests…
-        </p>
-      ) : null}
-
-      {items.length === 0 && !loading ? (
+      {items.length === 0 ? (
         <div className="space-y-4 border border-dashed border-foreground/20 px-6 py-12 text-center">
           <p className="font-heading text-2xl">No coordination items yet.</p>
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
@@ -247,19 +201,13 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
             Start a coordination intake
           </Link>
         </div>
-      ) : items.length > 0 ? (
+      ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {statusOrder.map((status) => (
-            <Column
-              key={status}
-              status={status}
-              items={grouped(status)}
-              onStatusChange={onStatusChange}
-              onRemove={(item) => void removeSavedIntake(item.id)}
-            />
+            <Column key={status} status={status} items={grouped(status)} />
           ))}
         </div>
-      ) : null}
+      )}
 
       {savedIntakes.length > 0 ? (
         <p className="text-sm text-muted-foreground">

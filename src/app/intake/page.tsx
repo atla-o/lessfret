@@ -5,6 +5,8 @@ import { IntakeSessionPanel } from "@/components/intake/session-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Intake",
   description:

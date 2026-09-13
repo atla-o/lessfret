@@ -4,6 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { SavedStatusForm } from "@/components/saved-status-form";
 import { StatusSelect } from "@/components/status-select";
 import { cn } from "@/lib/utils";
 import {
@@ -22,14 +23,7 @@ import {
 } from "@/lib/example-status";
 import { formatSubmittedAt } from "@/lib/format";
 import { coachingFocusLabels } from "@/lib/intake";
-import {
-  changeIntakeStatus,
-  refreshIntakes,
-  removeSavedIntake,
-  removeSavedLane,
-} from "@/lib/intakes-store";
-import type { PersistedCoaching } from "@/lib/records";
-import { useIntakes } from "@/lib/use-intakes";
+import type { PersistedCoaching, PersistedIntake } from "@/lib/records";
 
 function itemFromIntake(intake: PersistedCoaching): CoachingItem {
   const focus = intake.focus || "other";
@@ -48,13 +42,9 @@ function itemFromIntake(intake: PersistedCoaching): CoachingItem {
 function Column({
   status,
   items,
-  onStatusChange,
-  onRemove,
 }: {
   status: CoachingStatus;
   items: CoachingItem[];
-  onStatusChange: (item: CoachingItem, status: CoachingStatus) => void;
-  onRemove: (item: CoachingItem) => void;
 }) {
   return (
     <section className="flex min-w-[16.5rem] flex-1 flex-col border border-foreground/10 bg-background">
@@ -72,29 +62,14 @@ function Column({
             Nothing in this column.
           </p>
         ) : (
-          items.map((item) => (
-            <CoachingCard
-              key={item.id}
-              item={item}
-              onStatusChange={onStatusChange}
-              onRemove={onRemove}
-            />
-          ))
+          items.map((item) => <CoachingCard key={item.id} item={item} />)
         )}
       </div>
     </section>
   );
 }
 
-function CoachingCard({
-  item,
-  onStatusChange,
-  onRemove,
-}: {
-  item: CoachingItem;
-  onStatusChange: (item: CoachingItem, status: CoachingStatus) => void;
-  onRemove: (item: CoachingItem) => void;
-}) {
+function CoachingCard({ item }: { item: CoachingItem }) {
   return (
     <article className="space-y-3 border border-foreground/10 px-3 py-3">
       <div className="flex flex-wrap gap-1.5">
@@ -116,35 +91,45 @@ function CoachingCard({
           Saved {formatSubmittedAt(item.submittedAt)}
         </p>
       ) : null}
-      <StatusSelect
-        label="Move this request"
-        value={item.status}
-        options={coachingStatusOrder}
-        labels={coachingStatusLabels}
-        onChange={(status) => onStatusChange(item, status)}
-      />
-      {!item.example ? (
-        <button
-          type="button"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-          onClick={() => onRemove(item)}
-        >
-          Remove saved request
-        </button>
-      ) : null}
+      {item.example ? (
+        <StatusSelect
+          label="Move this request"
+          value={item.status}
+          options={coachingStatusOrder}
+          labels={coachingStatusLabels}
+          onChange={(status) => setExampleStatus(item.id, status)}
+        />
+      ) : (
+        <SavedStatusForm
+          id={item.id}
+          lane="coaching"
+          status={item.status}
+          options={coachingStatusOrder}
+          labels={coachingStatusLabels}
+        />
+      )}
     </article>
   );
 }
 
-export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
-  const { intakes, loading, error } = useIntakes();
+export function CoachingBoard({
+  hideExamples,
+  initialIntakes,
+  loadError,
+  justSaved,
+}: {
+  hideExamples: boolean;
+  initialIntakes: PersistedIntake[];
+  loadError: string | null;
+  justSaved?: boolean;
+}) {
   const exampleStatus = useSyncExternalStore(
     subscribeExampleStatus,
     readExampleStatus,
     emptyExampleStatus
   );
 
-  const savedIntakes = intakes.filter(
+  const savedIntakes = initialIntakes.filter(
     (item): item is PersistedCoaching => item.lane === "coaching"
   );
 
@@ -163,16 +148,14 @@ export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
     return items.filter((item) => item.status === status);
   }
 
-  async function onStatusChange(item: CoachingItem, status: CoachingStatus) {
-    if (item.example) {
-      setExampleStatus(item.id, status);
-      return;
-    }
-    await changeIntakeStatus(item.id, status);
-  }
-
   return (
     <div className="space-y-6">
+      {justSaved ? (
+        <p className="border border-foreground/12 px-4 py-3 text-sm" role="status">
+          Coaching request saved to GCP project devo-holding. Refresh keeps it
+          here.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-3 border border-foreground/10 bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-muted-foreground">
           Cards marked <span className="text-foreground">Saved</span> live in
@@ -190,22 +173,6 @@ export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
           <button
             type="button"
             className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-            onClick={() => void refreshIntakes(true)}
-          >
-            Reload
-          </button>
-          {savedIntakes.length > 0 ? (
-            <button
-              type="button"
-              className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-              onClick={() => void removeSavedLane("coaching")}
-            >
-              Remove my saved requests
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
             onClick={() => clearExampleStatus()}
           >
             Reset example statuses
@@ -213,26 +180,13 @@ export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
         </div>
       </div>
 
-      {error ? (
-        <div className="space-y-3 border border-destructive/30 px-4 py-4" role="alert">
-          <p className="text-sm text-destructive">{error}</p>
-          <button
-            type="button"
-            className={cn(buttonVariants({ size: "lg" }))}
-            onClick={() => void refreshIntakes()}
-          >
-            Try again
-          </button>
+      {loadError ? (
+        <div className="border border-destructive/30 px-4 py-4" role="alert">
+          <p className="text-sm text-destructive">{loadError}</p>
         </div>
       ) : null}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground" role="status">
-          Loading saved coaching requests…
-        </p>
-      ) : null}
-
-      {items.length === 0 && !loading ? (
+      {items.length === 0 ? (
         <div className="space-y-4 border border-dashed border-foreground/20 px-6 py-12 text-center">
           <p className="font-heading text-2xl">No coaching requests yet.</p>
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
@@ -246,19 +200,13 @@ export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
             Start a coaching intake
           </Link>
         </div>
-      ) : items.length > 0 ? (
+      ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
           {coachingStatusOrder.map((status) => (
-            <Column
-              key={status}
-              status={status}
-              items={grouped(status)}
-              onStatusChange={onStatusChange}
-              onRemove={(item) => void removeSavedIntake(item.id)}
-            />
+            <Column key={status} status={status} items={grouped(status)} />
           ))}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

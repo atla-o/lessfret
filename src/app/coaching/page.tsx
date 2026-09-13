@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { CoachingBoard } from "@/components/coaching/coaching-board";
 import { ScopeNotice } from "@/components/form-notice";
+import { loadIntakesForRequest } from "@/lib/server/load-intakes";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Coaching requests",
@@ -11,9 +14,11 @@ export const metadata: Metadata = {
 export default async function CoachingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ examples?: string }>;
+  searchParams: Promise<{ examples?: string; saved?: string }>;
 }) {
-  const hideExamples = (await searchParams).examples === "hidden";
+  const params = await searchParams;
+  const hideExamples = params.examples === "hidden";
+  const { intakes, error } = await loadIntakesForRequest("coaching");
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-5 py-14 md:py-16">
@@ -35,7 +40,12 @@ export default async function CoachingPage({
         need a clinician, use care coordination — and if you are in danger,
         contact local emergency services.
       </ScopeNotice>
-      <CoachingBoard hideExamples={hideExamples} />
+      <CoachingBoard
+        hideExamples={hideExamples}
+        initialIntakes={intakes}
+        loadError={error}
+        justSaved={params.saved === "1"}
+      />
     </div>
   );
 }
