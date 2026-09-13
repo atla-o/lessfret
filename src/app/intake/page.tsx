@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CrisisNotice } from "@/components/form-notice";
+import { IntakeSessionPanel } from "@/components/intake/session-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +22,14 @@ export default function IntakePage() {
           Start with the lane you need.
         </h1>
         <p className="max-w-xl text-sm leading-7 text-muted-foreground">
-          These forms are stubs. They validate, save to this browser session,
-          and show the empty, error, submitting, and received states. Nothing
-          is sent to a coach, clinic, or cloud yet.
+          These forms validate, save to this browser session, and show empty,
+          error, submitting, and received states. You can submit more than one
+          request. Nothing is sent to a coach, clinic, or cloud yet.
         </p>
       </div>
 
       <CrisisNotice />
+      <IntakeSessionPanel />
 
       <div className="grid gap-4 md:grid-cols-2">
         <article className="flex flex-col gap-4 border border-foreground/12 p-6">

@@ -6,44 +6,37 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { StatusSelect } from "@/components/status-select";
 import { cn } from "@/lib/utils";
-import { formatSubmittedAt } from "@/lib/format";
 import {
-  exampleBoardItems,
-  kindLabels,
-  statusLabels,
-  statusOrder,
-  type BoardItem,
-  type BoardStatus,
-} from "@/lib/board-data";
+  coachingStatusLabels,
+  coachingStatusOrder,
+  exampleCoachingItems,
+  type CoachingItem,
+  type CoachingStatus,
+} from "@/lib/coaching-data";
+import { formatSubmittedAt } from "@/lib/format";
+import { coachingFocusLabels, type StoredIntake } from "@/lib/intake";
 import {
   clearIntakes,
   clearStatusOverrides,
   getServerSession,
   readSession,
   removeIntake,
-  setBoardStatus,
+  setCoachingStatus,
   subscribeSession,
 } from "@/lib/session";
-import {
-  needLabels,
-  pathwayLabels,
-  type StoredIntake,
-} from "@/lib/intake";
 
-function itemFromIntake(intake: StoredIntake): BoardItem | null {
-  if (intake.lane !== "coordination") return null;
-  const need = intake.needs[0] ?? "scheduling";
+function itemFromIntake(intake: StoredIntake): CoachingItem | null {
+  if (intake.lane !== "coaching") return null;
+  const focus = intake.focus || "other";
   return {
     id: intake.id,
-    title: `${intake.name} · ${pathwayLabels[intake.pathway || "other"]}`,
-    detail: `${intake.situation}${
-      intake.providers ? ` Providers noted: ${intake.providers}.` : ""
-    } Needs: ${intake.needs.map((item) => needLabels[item]).join("; ")}.`,
+    title: `${intake.name} · ${coachingFocusLabels[focus]}`,
+    detail: intake.conversation,
+    focus,
     status: "requested",
-    kind: need,
-    pathway: intake.pathway || "other",
     example: false,
     session: true,
+    submittedAt: intake.submittedAt,
   };
 }
 
@@ -53,16 +46,16 @@ function Column({
   onStatusChange,
   onRemove,
 }: {
-  status: BoardStatus;
-  items: BoardItem[];
-  onStatusChange: (id: string, status: BoardStatus) => void;
+  status: CoachingStatus;
+  items: CoachingItem[];
+  onStatusChange: (id: string, status: CoachingStatus) => void;
   onRemove: (id: string) => void;
 }) {
   return (
     <section className="flex min-w-[16.5rem] flex-1 flex-col border border-foreground/10 bg-background">
       <header className="flex items-center justify-between gap-2 border-b border-foreground/10 px-3 py-3">
         <h2 className="text-[11px] font-medium uppercase tracking-[0.16em]">
-          {statusLabels[status]}
+          {coachingStatusLabels[status]}
         </h2>
         <span className="text-[11px] tabular-nums text-muted-foreground">
           {items.length}
@@ -75,7 +68,7 @@ function Column({
           </p>
         ) : (
           items.map((item) => (
-            <BoardCard
+            <CoachingCard
               key={item.id}
               item={item}
               onStatusChange={onStatusChange}
@@ -88,13 +81,13 @@ function Column({
   );
 }
 
-function BoardCard({
+function CoachingCard({
   item,
   onStatusChange,
   onRemove,
 }: {
-  item: BoardItem;
-  onStatusChange: (id: string, status: BoardStatus) => void;
+  item: CoachingItem;
+  onStatusChange: (id: string, status: CoachingStatus) => void;
   onRemove: (id: string) => void;
 }) {
   return (
@@ -108,19 +101,21 @@ function BoardCard({
           <Badge className="font-normal">This session</Badge>
         )}
         <Badge variant="secondary" className="font-normal">
-          {kindLabels[item.kind]}
-        </Badge>
-        <Badge variant="secondary" className="font-normal">
-          {pathwayLabels[item.pathway]}
+          {coachingFocusLabels[item.focus]}
         </Badge>
       </div>
       <h3 className="text-sm font-medium leading-5">{item.title}</h3>
       <p className="text-sm leading-6 text-muted-foreground">{item.detail}</p>
+      {item.submittedAt ? (
+        <p className="text-xs text-muted-foreground">
+          Saved {formatSubmittedAt(item.submittedAt)}
+        </p>
+      ) : null}
       <StatusSelect
-        label="Move this item"
+        label="Move this request"
         value={item.status}
-        options={statusOrder}
-        labels={statusLabels}
+        options={coachingStatusOrder}
+        labels={coachingStatusLabels}
         onChange={(status) => onStatusChange(item.id, status)}
       />
       {item.session ? (
@@ -136,7 +131,7 @@ function BoardCard({
   );
 }
 
-export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
+export function CoachingBoard({ hideExamples }: { hideExamples: boolean }) {
   const session = useSyncExternalStore(
     subscribeSession,
     readSession,
@@ -146,26 +141,26 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
   const items = useMemo(() => {
     const sessionItems = session.intakes
       .map(itemFromIntake)
-      .filter((item): item is BoardItem => item !== null)
+      .filter((item): item is CoachingItem => item !== null)
       .map((item) => ({
         ...item,
-        status: session.boardStatus[item.id] ?? item.status,
+        status: session.coachingStatus[item.id] ?? item.status,
       }));
     const examples = hideExamples
       ? []
-      : exampleBoardItems.map((item) => ({
+      : exampleCoachingItems.map((item) => ({
           ...item,
-          status: session.boardStatus[item.id] ?? item.status,
+          status: session.coachingStatus[item.id] ?? item.status,
         }));
     return [...sessionItems, ...examples];
   }, [hideExamples, session]);
 
-  function grouped(status: BoardStatus) {
+  function grouped(status: CoachingStatus) {
     return items.filter((item) => item.status === status);
   }
 
   const sessionCount = session.intakes.filter(
-    (item) => item.lane === "coordination"
+    (item) => item.lane === "coaching"
   ).length;
 
   return (
@@ -173,12 +168,12 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
       <div className="flex flex-col gap-3 border border-foreground/10 bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-muted-foreground">
           Cards marked <span className="text-foreground">Example</span> are
-          placeholder data. They are not real people, visits, or outcomes. Move
-          any card to track logistics in this browser.
+          placeholder notes. They are not real people or outcomes. Move any
+          card to track a coaching request in this browser.
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={hideExamples ? "/board" : "/board?examples=hidden"}
+            href={hideExamples ? "/coaching" : "/coaching?examples=hidden"}
             aria-pressed={hideExamples}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
           >
@@ -188,9 +183,7 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
             <button
               type="button"
               className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-              onClick={() => {
-                clearIntakes("coordination");
-              }}
+              onClick={() => clearIntakes("coaching")}
             >
               Clear session requests
             </button>
@@ -198,7 +191,7 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
           <button
             type="button"
             className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
-            onClick={() => clearStatusOverrides("board")}
+            onClick={() => clearStatusOverrides("coaching")}
           >
             Reset statuses
           </button>
@@ -207,46 +200,31 @@ export function CoordinationBoard({ hideExamples }: { hideExamples: boolean }) {
 
       {items.length === 0 ? (
         <div className="space-y-4 border border-dashed border-foreground/20 px-6 py-12 text-center">
-          <p className="font-heading text-2xl">No coordination items yet.</p>
+          <p className="font-heading text-2xl">No coaching requests yet.</p>
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
-            Example cards are hidden, and this browser session has no
-            coordination intake. Submit one to see a live card, or show the
-            examples again.
+            Example cards are hidden, and this browser session has no coaching
+            intake. Submit one to see a live card, or show the examples again.
           </p>
           <Link
-            href="/intake/coordination"
+            href="/intake/coaching"
             className={cn(buttonVariants({ size: "lg" }))}
           >
-            Start a coordination intake
+            Start a coaching intake
           </Link>
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {statusOrder.map((status) => (
+          {coachingStatusOrder.map((status) => (
             <Column
               key={status}
               status={status}
               items={grouped(status)}
-              onStatusChange={setBoardStatus}
+              onStatusChange={setCoachingStatus}
               onRemove={removeIntake}
             />
           ))}
         </div>
       )}
-
-      {sessionCount > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {sessionCount === 1
-            ? "1 request from this session."
-            : `${sessionCount} requests from this session.`}{" "}
-          Latest saved{" "}
-          {formatSubmittedAt(
-            session.intakes.find((item) => item.lane === "coordination")
-              ?.submittedAt
-          )}
-          .
-        </p>
-      ) : null}
     </div>
   );
 }

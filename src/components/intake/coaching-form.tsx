@@ -4,19 +4,25 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChoiceRow, Field } from "@/components/field";
 import { CrisisNotice, ScopeNotice } from "@/components/form-notice";
+import { SessionNotice } from "@/components/session-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { formatSubmittedAt } from "@/lib/format";
 import {
   coachingFocusLabels,
   simulateSubmit,
-  writeIntake,
   type CoachingFocus,
   type CoachingIntake,
 } from "@/lib/intake";
+import {
+  createIntakeId,
+  sessionSaveErrorMessage,
+  writeIntake,
+} from "@/lib/session";
 
 const focuses = Object.entries(coachingFocusLabels) as [
   CoachingFocus,
@@ -33,6 +39,7 @@ export function CoachingForm() {
   const [acceptedScope, setAcceptedScope] = useState(false);
   const [state, setState] = useState<FormState>("editing");
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<CoachingIntake | null>(null);
 
   const missing = {
     name: !name.trim(),
@@ -56,6 +63,7 @@ export function CoachingForm() {
     try {
       await simulateSubmit();
       const payload: CoachingIntake = {
+        id: createIntakeId(),
         lane: "coaching",
         name: name.trim(),
         contact: contact.trim(),
@@ -65,16 +73,17 @@ export function CoachingForm() {
         submittedAt: new Date().toISOString(),
       };
       writeIntake(payload);
+      setSaved(payload);
       setState("success");
     } catch (err) {
       setState("error");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(sessionSaveErrorMessage(err));
     }
   }
 
-  if (state === "success") {
+  if (state === "success" && saved) {
     return (
-      <div className="space-y-6 border border-foreground/12 p-6 md:p-8">
+      <div className="space-y-6 border border-foreground/12 p-6 md:p-8" role="status">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           Intake received
         </p>
@@ -82,19 +91,45 @@ export function CoachingForm() {
           We have your coaching request.
         </h2>
         <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          This first pass stores the note in your browser session only. A coach
-          does not see it yet. Nothing here starts a clinical relationship, and
-          we will not diagnose or treat anything from this form.
+          Saved in this browser session on {formatSubmittedAt(saved.submittedAt)}.
+          A coach does not see it yet. Nothing here starts a clinical
+          relationship, and we will not diagnose or treat anything from this
+          form.
         </p>
+        <dl className="space-y-3 text-sm">
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              Focus
+            </dt>
+            <dd className="mt-1">{coachingFocusLabels[saved.focus || "other"]}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              First conversation
+            </dt>
+            <dd className="mt-1 leading-6 text-muted-foreground">
+              {saved.conversation}
+            </dd>
+          </div>
+        </dl>
         <div className="flex flex-wrap gap-3">
-          <Link href="/intake" className={cn(buttonVariants({ size: "lg" }))}>
-            Back to intake
+          <Link href="/coaching" className={cn(buttonVariants({ size: "lg" }))}>
+            Open coaching requests
           </Link>
           <Link
-            href="/"
+            href="/intake/coaching"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+            onClick={() => {
+              setSaved(null);
+              setName("");
+              setContact("");
+              setFocus("");
+              setConversation("");
+              setAcceptedScope(false);
+              setState("editing");
+            }}
           >
-            Home
+            Another coaching intake
           </Link>
         </div>
       </div>
@@ -112,6 +147,10 @@ export function CoachingForm() {
         need licensed clinical care, ask a clinician — we can help coordinate
         that search on the care-coordination side.
       </ScopeNotice>
+      <SessionNotice>
+        This request stays in this browser session so you can review it under
+        Coaching. It is not sent to a coach, clinic, or server yet.
+      </SessionNotice>
 
       {error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -137,7 +176,7 @@ export function CoachingForm() {
 
       <Field
         label="Best contact"
-        hint="Email or phone. This stub does not send messages."
+        hint="Email or phone. Messages stay in this browser until a later handoff exists."
         htmlFor="contact"
         error={showFieldErrors && missing.contact ? "Required." : undefined}
       >

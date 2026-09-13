@@ -22,6 +22,7 @@ export type CoordinationNeed =
   | "follow-up";
 
 export type CoachingIntake = {
+  id: string;
   lane: "coaching";
   name: string;
   contact: string;
@@ -32,6 +33,7 @@ export type CoachingIntake = {
 };
 
 export type CoordinationIntake = {
+  id: string;
   lane: "coordination";
   name: string;
   contact: string;
@@ -44,21 +46,6 @@ export type CoordinationIntake = {
 };
 
 export type StoredIntake = CoachingIntake | CoordinationIntake;
-
-export const INTAKE_STORAGE_KEY = "lessfret.intake.v1";
-
-const intakeListeners = new Set<() => void>();
-
-function emitIntake() {
-  for (const listener of intakeListeners) listener();
-}
-
-export function subscribeIntake(listener: () => void) {
-  intakeListeners.add(listener);
-  return () => {
-    intakeListeners.delete(listener);
-  };
-}
 
 export const coachingFocusLabels: Record<CoachingFocus, string> = {
   direction: "Life direction and decisions",
@@ -85,44 +72,25 @@ export const needLabels: Record<CoordinationNeed, string> = {
   "follow-up": "Tracking follow-ups after a visit",
 };
 
-let cachedRaw: string | null = null;
-let cachedValue: StoredIntake | null = null;
-
-export function readIntake(): StoredIntake | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = sessionStorage.getItem(INTAKE_STORAGE_KEY);
-    if (raw === cachedRaw) return cachedValue;
-    cachedRaw = raw;
-    cachedValue = raw ? (JSON.parse(raw) as StoredIntake) : null;
-    return cachedValue;
-  } catch {
-    cachedRaw = null;
-    cachedValue = null;
-    return null;
-  }
-}
-
-export function writeIntake(intake: StoredIntake) {
-  const raw = JSON.stringify(intake);
-  sessionStorage.setItem(INTAKE_STORAGE_KEY, raw);
-  cachedRaw = raw;
-  cachedValue = intake;
-  emitIntake();
-}
-
-export function clearIntake() {
-  sessionStorage.removeItem(INTAKE_STORAGE_KEY);
-  cachedRaw = null;
-  cachedValue = null;
-  emitIntake();
-}
-
 export function simulateSubmit(fail = false) {
   return new Promise<void>((resolve, reject) => {
     window.setTimeout(() => {
-      if (fail) reject(new Error("Could not save this intake. Try again."));
-      else resolve();
+      if (fail) {
+        reject(new Error("Could not save this intake. Try again."));
+        return;
+      }
+      try {
+        const probe = "__lessfret_write_probe";
+        sessionStorage.setItem(probe, "1");
+        sessionStorage.removeItem(probe);
+        resolve();
+      } catch {
+        reject(
+          new Error(
+            "This browser could not save a session note. Check private-browsing storage settings and try again."
+          )
+        );
+      }
     }, 700);
   });
 }

@@ -66,15 +66,15 @@ export default function LegalPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-heading text-2xl tracking-tight">This first pass</h2>
+        <h2 className="font-heading text-2xl tracking-tight">How notes are stored</h2>
         <p className="text-sm leading-7 text-muted-foreground">
-          Intake notes stay in the browser session. The coordination board
-          includes labeled example cards. No app data is written to Firebase.
-          Production data is planned for a GCP project family under{" "}
-          {parentBrand}. Publisher identity: {publisher}. This Origin
-          repository is the working home. Public source: github.com/atla-o/lessfret.
-          Public host (Cloud Run / GCP, not Cloudflare Workers):
-          lessfret.devoutshaman.com.
+          Intake notes stay in the browser session. Coaching and coordination
+          boards include labeled example cards plus anything you submit here.
+          No app data is written to Firebase. Production records are planned
+          for a GCP project family under {parentBrand}. Publisher identity:{" "}
+          {publisher}. This Origin repository is the working home. Public
+          source: github.com/atla-o/lessfret. Public host (Cloud Run / GCP,
+          not Cloudflare Workers): lessfret.devoutshaman.com.
         </p>
       </section>
     </div>

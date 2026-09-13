@@ -4,21 +4,27 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChoiceRow, Field } from "@/components/field";
 import { CrisisNotice, ScopeNotice } from "@/components/form-notice";
+import { SessionNotice } from "@/components/session-notice";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { formatSubmittedAt } from "@/lib/format";
 import {
   needLabels,
   pathwayLabels,
   simulateSubmit,
-  writeIntake,
   type CoordinationNeed,
   type CoordinationPathway,
   type CoordinationIntake,
 } from "@/lib/intake";
+import {
+  createIntakeId,
+  sessionSaveErrorMessage,
+  writeIntake,
+} from "@/lib/session";
 
 const pathways = Object.entries(pathwayLabels) as [
   CoordinationPathway,
@@ -38,6 +44,7 @@ export function CoordinationForm() {
   const [acceptedScope, setAcceptedScope] = useState(false);
   const [state, setState] = useState<FormState>("editing");
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<CoordinationIntake | null>(null);
 
   const missing = {
     name: !name.trim(),
@@ -68,6 +75,7 @@ export function CoordinationForm() {
     try {
       await simulateSubmit();
       const payload: CoordinationIntake = {
+        id: createIntakeId(),
         lane: "coordination",
         name: name.trim(),
         contact: contact.trim(),
@@ -79,16 +87,17 @@ export function CoordinationForm() {
         submittedAt: new Date().toISOString(),
       };
       writeIntake(payload);
+      setSaved(payload);
       setState("success");
     } catch (err) {
       setState("error");
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(sessionSaveErrorMessage(err));
     }
   }
 
-  if (state === "success") {
+  if (state === "success" && saved) {
     return (
-      <div className="space-y-6 border border-foreground/12 p-6 md:p-8">
+      <div className="space-y-6 border border-foreground/12 p-6 md:p-8" role="status">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           Intake received
         </p>
@@ -96,19 +105,46 @@ export function CoordinationForm() {
           Coordination request is on the board.
         </h2>
         <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          This first pass keeps the request in your browser session and adds it
-          to the example board. No clinic is contacted. Lessfret does not order
-          tests, interpret results, or practice medicine.
+          Saved in this browser session on {formatSubmittedAt(saved.submittedAt)}.
+          No clinic is contacted. Lessfret does not order tests, interpret
+          results, or practice medicine.
         </p>
+        <dl className="space-y-3 text-sm">
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              Pathway
+            </dt>
+            <dd className="mt-1">{pathwayLabels[saved.pathway || "other"]}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              Needs
+            </dt>
+            <dd className="mt-1 leading-6 text-muted-foreground">
+              {saved.needs.map((need) => needLabels[need]).join("; ")}
+            </dd>
+          </div>
+        </dl>
         <div className="flex flex-wrap gap-3">
           <Link href="/board" className={cn(buttonVariants({ size: "lg" }))}>
             Open the board
           </Link>
           <Link
-            href="/intake"
+            href="/intake/coordination"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+            onClick={() => {
+              setSaved(null);
+              setName("");
+              setContact("");
+              setPathway("");
+              setSelectedNeeds([]);
+              setSituation("");
+              setProviders("");
+              setAcceptedScope(false);
+              setState("editing");
+            }}
           >
-            Another intake
+            Another coordination intake
           </Link>
         </div>
       </div>
@@ -126,6 +162,11 @@ export function CoordinationForm() {
         often early on; the lane is still broad health navigation. We do not
         invent prescriptions, give medical advice, or claim clinical outcomes.
       </ScopeNotice>
+      <SessionNotice>
+        This request stays in this browser session and appears on the board so
+        you can move it through logistics. It is not sent to a clinic or server
+        yet.
+      </SessionNotice>
 
       {error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -151,7 +192,7 @@ export function CoordinationForm() {
 
       <Field
         label="Best contact"
-        hint="Email or phone. This stub does not send messages."
+        hint="Email or phone. Messages stay in this browser until a later handoff exists."
         htmlFor="contact"
         error={showFieldErrors && missing.contact ? "Required." : undefined}
       >

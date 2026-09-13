@@ -27,7 +27,7 @@ npm run lint
 npm run build
 ```
 
-App data is planned for GCP project `devo-holding` — not Firebase. Intake in this stub stays in the browser session.
+App data is planned for GCP project `devo-holding` — not Firebase. Intake, coaching requests, and the coordination board stay in the browser session for now.
 
 ## Deploy (Cloud Run)
 
@@ -54,14 +54,14 @@ GitHub Actions authenticates with Workload Identity Federation. Repository secre
 
 One-time cutover (not part of the workflow): map `lessfret.devoutshaman.com` on Cloud Run **`lessfret-web`** instead of the holding stub `devo-web`, and keep the Cloudflare CNAME DNS-only (not proxied) to `ghs.googlehosted.com`. Do not put this app on Cloudflare Workers, Firebase, or Vercel.
 
-## What this first pass includes
+## What the UI includes
 
 - Landing page that states what Lessfret is and is not
-- Intake stubs for coaching and care coordination (validation, submitting, error, received)
-- Care-coordination board with labeled example cards
+- Coaching and care-coordination intakes (validation, submitting, error, received)
+- Coaching requests and a care-coordination board you can move, with labeled example cards
 - Legal notice and a persistent footer disclaimer, including crisis → local emergency services
 
-There are no fake metrics, stock photographs, or invented clinical outcomes.
+Notes stay in the browser session. There are no fake metrics, stock photographs, or invented clinical outcomes.
 
 ## Agent process
 

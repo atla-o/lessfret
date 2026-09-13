@@ -183,7 +183,7 @@ export default function HomePage() {
 
       <section className="border-t border-foreground/10">
         <div className="mx-auto max-w-6xl px-5 py-16 md:py-20">
-          <h2 className="font-heading text-3xl tracking-tight">How a first pass works</h2>
+          <h2 className="font-heading text-3xl tracking-tight">How it works</h2>
           <ol className="mt-10 grid gap-8 md:grid-cols-3">
             {steps.map((step) => (
               <li key={step.n} className="space-y-3">
@@ -203,10 +203,16 @@ export default function HomePage() {
               Coaching intake
             </Link>
             <Link
+              href="/coaching"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+            >
+              Coaching requests
+            </Link>
+            <Link
               href="/board"
               className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
             >
-              See the example board
+              Open the board
             </Link>
           </div>
         </div>
