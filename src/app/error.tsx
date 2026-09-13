@@ -1,35 +1,46 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function NotFound() {
+export default function ErrorPage({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <div className="mx-auto max-w-xl space-y-5 px-5 py-24">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        Missing
+        Error
       </p>
       <h1 className="font-heading text-4xl tracking-tight">
-        That page is not here.
+        This page did not load.
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Return to the landing page, or start an intake if you meant to request
-        coaching or coordination.
+        Try again, or return home. Nothing here is emergency care — if you are
+        in danger, contact local emergency services.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Link href="/" className={cn(buttonVariants({ size: "lg" }))}>
+        <button
+          type="button"
+          onClick={() => retry()}
+          className={cn(buttonVariants({ size: "lg" }))}
+        >
+          Try again
+        </button>
+        <Link
+          href="/"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+        >
           Home
-        </Link>
-        <Link
-          href="/intake"
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-        >
-          Intake
-        </Link>
-        <Link
-          href="/coaching"
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-        >
-          Coaching
         </Link>
       </div>
     </div>

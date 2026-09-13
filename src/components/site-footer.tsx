@@ -27,6 +27,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/coaching" className="hover:text-background">
+                Coaching requests
+              </Link>
+            </li>
+            <li>
               <Link href="/board" className="hover:text-background">
                 Care-coordination board
               </Link>
@@ -46,8 +51,14 @@ export function SiteFooter() {
             >
               devoutshaman.com
             </a>
-            . Future public host: lessfret.devoutshaman.com — not deployed from
-            this first pass.
+            . Public host:{" "}
+            <a
+              href="https://lessfret.devoutshaman.com"
+              className="underline underline-offset-3 hover:text-background/80"
+            >
+              lessfret.devoutshaman.com
+            </a>
+            .
           </p>
         </div>
       </div>

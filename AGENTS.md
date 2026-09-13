@@ -65,7 +65,7 @@ Do not collapse these products into Lessfret. Cross-link lightly as Devo family,
 
 - Next.js App Router, TypeScript, Tailwind, shadcn/ui
 - Production: `output: "standalone"` in `next.config.ts`; `npm ci` needs `package-lock.json`
-- Intake and board are stubs: sessionStorage plus labeled example data
+- Intake, coaching requests, and the board persist in Firestore on GCP project `devo-holding` via `/api/intakes`. Labeled example cards stay local.
 - Shared legal strings live in `src/lib/legal.ts` — change the disclaimer there, not as one-off page copy
 - Keep the black/white, spare Devo-adjacent aesthetic
 - No fake dashboards, no vanity metrics

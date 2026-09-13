@@ -1,11 +1,6 @@
 import Link from "next/link";
+import { SiteNav } from "@/components/site-nav";
 import { parentBrand, productName } from "@/lib/legal";
-
-const links = [
-  { href: "/intake", label: "Intake" },
-  { href: "/board", label: "Coordination" },
-  { href: "/legal", label: "Legal" },
-];
 
 export function SiteHeader() {
   return (
@@ -19,17 +14,7 @@ export function SiteHeader() {
             {parentBrand}
           </span>
         </Link>
-        <nav className="flex items-center gap-1 text-sm sm:gap-4">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <SiteNav />
       </div>
     </header>
   );

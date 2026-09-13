@@ -27,7 +27,7 @@ npm run lint
 npm run build
 ```
 
-App data is planned for GCP project `devo-holding` — not Firebase. Intake in this stub stays in the browser session.
+App data lives in GCP project `devo-holding` (Firestore), reached by the Cloud Run app API. Do not use the Firebase client SDK or Firebase Hosting. A browser client key keeps a person’s own requests reloadable after refresh.
 
 ## Deploy (Cloud Run)
 
@@ -54,14 +54,28 @@ GitHub Actions authenticates with Workload Identity Federation. Repository secre
 
 One-time cutover (not part of the workflow): map `lessfret.devoutshaman.com` on Cloud Run **`lessfret-web`** instead of the holding stub `devo-web`, and keep the Cloudflare CNAME DNS-only (not proxied) to `ghs.googlehosted.com`. Do not put this app on Cloudflare Workers, Firebase, or Vercel.
 
-## What this first pass includes
+## What the UI includes
 
 - Landing page that states what Lessfret is and is not
-- Intake stubs for coaching and care coordination (validation, submitting, error, received)
-- Care-coordination board with labeled example cards
+- Coaching and care-coordination intakes that POST to `/api/intakes` and persist in Firestore (`lessfret_intakes` in `devo-holding`)
+- Coaching requests and a care-coordination board that reload saved cards after refresh
 - Legal notice and a persistent footer disclaimer, including crisis → local emergency services
 
 There are no fake metrics, stock photographs, or invented clinical outcomes.
+
+## Firestore (devo-holding)
+
+One-time, if the Native Firestore database is not already there:
+
+```bash
+gcloud services enable firestore.googleapis.com --project=devo-holding
+gcloud firestore databases create \
+  --project=devo-holding \
+  --location=us-west1 \
+  --type=firestore-native
+```
+
+Grant the Cloud Run runtime service account `roles/datastore.user` on `devo-holding` so `lessfret-web` can read and write `lessfret_intakes`. The GitHub Actions deploy sets `GCP_PROJECT=devo-holding`. Do not deploy from an agent unless a human asks.
 
 ## Agent process
 

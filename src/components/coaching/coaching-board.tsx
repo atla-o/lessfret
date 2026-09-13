@@ -7,15 +7,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { SavedStatusForm } from "@/components/saved-status-form";
 import { StatusSelect } from "@/components/status-select";
 import { cn } from "@/lib/utils";
-import { formatSubmittedAt } from "@/lib/format";
 import {
-  exampleBoardItems,
-  kindLabels,
-  statusLabels,
-  statusOrder,
-  type BoardItem,
-  type BoardStatus,
-} from "@/lib/board-data";
+  coachingStatusLabels,
+  coachingStatusOrder,
+  exampleCoachingItems,
+  type CoachingItem,
+  type CoachingStatus,
+} from "@/lib/coaching-data";
 import {
   clearExampleStatus,
   emptyExampleStatus,
@@ -23,22 +21,21 @@ import {
   setExampleStatus,
   subscribeExampleStatus,
 } from "@/lib/example-status";
-import { needLabels, pathwayLabels } from "@/lib/intake";
-import type { PersistedCoordination, PersistedIntake } from "@/lib/records";
+import { formatSubmittedAt } from "@/lib/format";
+import { coachingFocusLabels } from "@/lib/intake";
+import type { PersistedCoaching, PersistedIntake } from "@/lib/records";
 
-function itemFromIntake(intake: PersistedCoordination): BoardItem {
-  const need = intake.needs[0] ?? "scheduling";
+function itemFromIntake(intake: PersistedCoaching): CoachingItem {
+  const focus = intake.focus || "other";
   return {
     id: intake.id,
-    title: `${intake.name} · ${pathwayLabels[intake.pathway || "other"]}`,
-    detail: `${intake.situation}${
-      intake.providers ? ` Providers noted: ${intake.providers}.` : ""
-    } Needs: ${intake.needs.map((item) => needLabels[item]).join("; ")}.`,
+    title: `${intake.name} · ${coachingFocusLabels[focus]}`,
+    detail: intake.conversation,
+    focus,
     status: intake.status,
-    kind: need,
-    pathway: intake.pathway || "other",
     example: false,
     session: false,
+    submittedAt: intake.submittedAt,
   };
 }
 
@@ -46,14 +43,14 @@ function Column({
   status,
   items,
 }: {
-  status: BoardStatus;
-  items: BoardItem[];
+  status: CoachingStatus;
+  items: CoachingItem[];
 }) {
   return (
     <section className="flex min-w-[16.5rem] flex-1 flex-col border border-foreground/10 bg-background">
       <header className="flex items-center justify-between gap-2 border-b border-foreground/10 px-3 py-3">
         <h2 className="text-[11px] font-medium uppercase tracking-[0.16em]">
-          {statusLabels[status]}
+          {coachingStatusLabels[status]}
         </h2>
         <span className="text-[11px] tabular-nums text-muted-foreground">
           {items.length}
@@ -65,14 +62,14 @@ function Column({
             Nothing in this column.
           </p>
         ) : (
-          items.map((item) => <BoardCard key={item.id} item={item} />)
+          items.map((item) => <CoachingCard key={item.id} item={item} />)
         )}
       </div>
     </section>
   );
 }
 
-function BoardCard({ item }: { item: BoardItem }) {
+function CoachingCard({ item }: { item: CoachingItem }) {
   return (
     <article className="space-y-3 border border-foreground/10 px-3 py-3">
       <div className="flex flex-wrap gap-1.5">
@@ -84,36 +81,38 @@ function BoardCard({ item }: { item: BoardItem }) {
           <Badge className="font-normal">Saved</Badge>
         )}
         <Badge variant="secondary" className="font-normal">
-          {kindLabels[item.kind]}
-        </Badge>
-        <Badge variant="secondary" className="font-normal">
-          {pathwayLabels[item.pathway]}
+          {coachingFocusLabels[item.focus]}
         </Badge>
       </div>
       <h3 className="text-sm font-medium leading-5">{item.title}</h3>
       <p className="text-sm leading-6 text-muted-foreground">{item.detail}</p>
+      {item.submittedAt ? (
+        <p className="text-xs text-muted-foreground">
+          Saved {formatSubmittedAt(item.submittedAt)}
+        </p>
+      ) : null}
       {item.example ? (
         <StatusSelect
-          label="Move this item"
+          label="Move this request"
           value={item.status}
-          options={statusOrder}
-          labels={statusLabels}
+          options={coachingStatusOrder}
+          labels={coachingStatusLabels}
           onChange={(status) => setExampleStatus(item.id, status)}
         />
       ) : (
         <SavedStatusForm
           id={item.id}
-          lane="coordination"
+          lane="coaching"
           status={item.status}
-          options={statusOrder}
-          labels={statusLabels}
+          options={coachingStatusOrder}
+          labels={coachingStatusLabels}
         />
       )}
     </article>
   );
 }
 
-export function CoordinationBoard({
+export function CoachingBoard({
   hideExamples,
   initialIntakes,
   loadError,
@@ -131,21 +130,21 @@ export function CoordinationBoard({
   );
 
   const savedIntakes = initialIntakes.filter(
-    (item): item is PersistedCoordination => item.lane === "coordination"
+    (item): item is PersistedCoaching => item.lane === "coaching"
   );
 
   const items = useMemo(() => {
     const saved = savedIntakes.map(itemFromIntake);
     const examples = hideExamples
       ? []
-      : exampleBoardItems.map((item) => ({
+      : exampleCoachingItems.map((item) => ({
           ...item,
-          status: (exampleStatus[item.id] as BoardStatus) ?? item.status,
+          status: (exampleStatus[item.id] as CoachingStatus) ?? item.status,
         }));
     return [...saved, ...examples];
   }, [exampleStatus, hideExamples, savedIntakes]);
 
-  function grouped(status: BoardStatus) {
+  function grouped(status: CoachingStatus) {
     return items.filter((item) => item.status === status);
   }
 
@@ -153,8 +152,8 @@ export function CoordinationBoard({
     <div className="space-y-6">
       {justSaved ? (
         <p className="border border-foreground/12 px-4 py-3 text-sm" role="status">
-          Coordination request saved to GCP project devo-holding. Refresh keeps
-          it here.
+          Coaching request saved to GCP project devo-holding. Refresh keeps it
+          here.
         </p>
       ) : null}
       <div className="flex flex-col gap-3 border border-foreground/10 bg-muted/30 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -165,7 +164,7 @@ export function CoordinationBoard({
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={hideExamples ? "/board" : "/board?examples=hidden"}
+            href={hideExamples ? "/coaching" : "/coaching?examples=hidden"}
             aria-pressed={hideExamples}
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
           >
@@ -189,34 +188,25 @@ export function CoordinationBoard({
 
       {items.length === 0 ? (
         <div className="space-y-4 border border-dashed border-foreground/20 px-6 py-12 text-center">
-          <p className="font-heading text-2xl">No coordination items yet.</p>
+          <p className="font-heading text-2xl">No coaching requests yet.</p>
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
             Example cards are hidden, and no saved request came back from
-            Lessfret. Submit one to put a live card on this board.
+            Lessfret. Submit one to put a live card here.
           </p>
           <Link
-            href="/intake/coordination"
+            href="/intake/coaching"
             className={cn(buttonVariants({ size: "lg" }))}
           >
-            Start a coordination intake
+            Start a coaching intake
           </Link>
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {statusOrder.map((status) => (
+          {coachingStatusOrder.map((status) => (
             <Column key={status} status={status} items={grouped(status)} />
           ))}
         </div>
       )}
-
-      {savedIntakes.length > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {savedIntakes.length === 1
-            ? "1 saved request."
-            : `${savedIntakes.length} saved requests.`}{" "}
-          Latest {formatSubmittedAt(savedIntakes[0]?.submittedAt)}.
-        </p>
-      ) : null}
     </div>
   );
 }
