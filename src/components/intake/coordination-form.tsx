@@ -15,16 +15,11 @@ import { formatSubmittedAt } from "@/lib/format";
 import {
   needLabels,
   pathwayLabels,
-  simulateSubmit,
   type CoordinationNeed,
   type CoordinationPathway,
-  type CoordinationIntake,
 } from "@/lib/intake";
-import {
-  createIntakeId,
-  sessionSaveErrorMessage,
-  writeIntake,
-} from "@/lib/session";
+import { saveErrorMessage, submitIntake } from "@/lib/intakes-store";
+import type { PersistedCoordination } from "@/lib/records";
 
 const pathways = Object.entries(pathwayLabels) as [
   CoordinationPathway,
@@ -44,7 +39,7 @@ export function CoordinationForm() {
   const [acceptedScope, setAcceptedScope] = useState(false);
   const [state, setState] = useState<FormState>("editing");
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<CoordinationIntake | null>(null);
+  const [saved, setSaved] = useState<PersistedCoordination | null>(null);
 
   const missing = {
     name: !name.trim(),
@@ -73,9 +68,7 @@ export function CoordinationForm() {
     setError(null);
 
     try {
-      await simulateSubmit();
-      const payload: CoordinationIntake = {
-        id: createIntakeId(),
+      const intake = await submitIntake({
         lane: "coordination",
         name: name.trim(),
         contact: contact.trim(),
@@ -84,14 +77,15 @@ export function CoordinationForm() {
         situation: situation.trim(),
         providers: providers.trim(),
         acceptedScope,
-        submittedAt: new Date().toISOString(),
-      };
-      writeIntake(payload);
-      setSaved(payload);
+      });
+      if (intake.lane !== "coordination") {
+        throw new Error("Saved, but the coordination lane did not come back.");
+      }
+      setSaved(intake);
       setState("success");
     } catch (err) {
       setState("error");
-      setError(sessionSaveErrorMessage(err));
+      setError(saveErrorMessage(err));
     }
   }
 
@@ -105,8 +99,9 @@ export function CoordinationForm() {
           Coordination request is on the board.
         </h2>
         <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          Saved in this browser session on {formatSubmittedAt(saved.submittedAt)}.
-          No clinic is contacted. Lessfret does not order tests, interpret
+          Saved {formatSubmittedAt(saved.submittedAt)} to Lessfret (GCP project
+          devo-holding). Refresh or open the board — it stays there. No clinic
+          is contacted automatically. Lessfret does not order tests, interpret
           results, or practice medicine.
         </p>
         <dl className="space-y-3 text-sm">
@@ -129,8 +124,8 @@ export function CoordinationForm() {
           <Link href="/board" className={cn(buttonVariants({ size: "lg" }))}>
             Open the board
           </Link>
-          <Link
-            href="/intake/coordination"
+          <button
+            type="button"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
             onClick={() => {
               setSaved(null);
@@ -145,7 +140,7 @@ export function CoordinationForm() {
             }}
           >
             Another coordination intake
-          </Link>
+          </button>
         </div>
       </div>
     );
@@ -163,9 +158,8 @@ export function CoordinationForm() {
         invent prescriptions, give medical advice, or claim clinical outcomes.
       </ScopeNotice>
       <SessionNotice>
-        This request stays in this browser session and appears on the board so
-        you can move it through logistics. It is not sent to a clinic or server
-        yet.
+        This request is stored in GCP project devo-holding and appears on the
+        board so we can coordinate logistics. It is not medical treatment.
       </SessionNotice>
 
       {error ? (
@@ -192,7 +186,7 @@ export function CoordinationForm() {
 
       <Field
         label="Best contact"
-        hint="Email or phone. Messages stay in this browser until a later handoff exists."
+        hint="Email or phone so we can reach you about this request."
         htmlFor="contact"
         error={showFieldErrors && missing.contact ? "Required." : undefined}
       >

@@ -71,26 +71,3 @@ export const needLabels: Record<CoordinationNeed, string> = {
   prep: "Preparing questions or visit materials",
   "follow-up": "Tracking follow-ups after a visit",
 };
-
-export function simulateSubmit(fail = false) {
-  return new Promise<void>((resolve, reject) => {
-    window.setTimeout(() => {
-      if (fail) {
-        reject(new Error("Could not save this intake. Try again."));
-        return;
-      }
-      try {
-        const probe = "__lessfret_write_probe";
-        sessionStorage.setItem(probe, "1");
-        sessionStorage.removeItem(probe);
-        resolve();
-      } catch {
-        reject(
-          new Error(
-            "This browser could not save a session note. Check private-browsing storage settings and try again."
-          )
-        );
-      }
-    }, 700);
-  });
-}

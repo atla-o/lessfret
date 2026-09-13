@@ -14,15 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatSubmittedAt } from "@/lib/format";
 import {
   coachingFocusLabels,
-  simulateSubmit,
   type CoachingFocus,
-  type CoachingIntake,
 } from "@/lib/intake";
-import {
-  createIntakeId,
-  sessionSaveErrorMessage,
-  writeIntake,
-} from "@/lib/session";
+import { saveErrorMessage, submitIntake } from "@/lib/intakes-store";
+import type { PersistedCoaching } from "@/lib/records";
 
 const focuses = Object.entries(coachingFocusLabels) as [
   CoachingFocus,
@@ -39,7 +34,7 @@ export function CoachingForm() {
   const [acceptedScope, setAcceptedScope] = useState(false);
   const [state, setState] = useState<FormState>("editing");
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<CoachingIntake | null>(null);
+  const [saved, setSaved] = useState<PersistedCoaching | null>(null);
 
   const missing = {
     name: !name.trim(),
@@ -61,23 +56,22 @@ export function CoachingForm() {
     setError(null);
 
     try {
-      await simulateSubmit();
-      const payload: CoachingIntake = {
-        id: createIntakeId(),
+      const intake = await submitIntake({
         lane: "coaching",
         name: name.trim(),
         contact: contact.trim(),
         focus,
         conversation: conversation.trim(),
         acceptedScope,
-        submittedAt: new Date().toISOString(),
-      };
-      writeIntake(payload);
-      setSaved(payload);
+      });
+      if (intake.lane !== "coaching") {
+        throw new Error("Saved, but the coaching lane did not come back.");
+      }
+      setSaved(intake);
       setState("success");
     } catch (err) {
       setState("error");
-      setError(sessionSaveErrorMessage(err));
+      setError(saveErrorMessage(err));
     }
   }
 
@@ -91,10 +85,10 @@ export function CoachingForm() {
           We have your coaching request.
         </h2>
         <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-          Saved in this browser session on {formatSubmittedAt(saved.submittedAt)}.
-          A coach does not see it yet. Nothing here starts a clinical
-          relationship, and we will not diagnose or treat anything from this
-          form.
+          Saved {formatSubmittedAt(saved.submittedAt)} to Lessfret (GCP project
+          devo-holding). Refresh this page or open coaching requests — it stays
+          there. Nothing here starts a clinical relationship, and we will not
+          diagnose or treat anything from this form.
         </p>
         <dl className="space-y-3 text-sm">
           <div>
@@ -116,8 +110,8 @@ export function CoachingForm() {
           <Link href="/coaching" className={cn(buttonVariants({ size: "lg" }))}>
             Open coaching requests
           </Link>
-          <Link
-            href="/intake/coaching"
+          <button
+            type="button"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
             onClick={() => {
               setSaved(null);
@@ -130,7 +124,7 @@ export function CoachingForm() {
             }}
           >
             Another coaching intake
-          </Link>
+          </button>
         </div>
       </div>
     );
@@ -148,8 +142,8 @@ export function CoachingForm() {
         that search on the care-coordination side.
       </ScopeNotice>
       <SessionNotice>
-        This request stays in this browser session so you can review it under
-        Coaching. It is not sent to a coach, clinic, or server yet.
+        This request is stored in GCP project devo-holding so Lessfret can
+        follow up. It is not a clinical record and not emergency care.
       </SessionNotice>
 
       {error ? (
@@ -176,7 +170,7 @@ export function CoachingForm() {
 
       <Field
         label="Best contact"
-        hint="Email or phone. Messages stay in this browser until a later handoff exists."
+        hint="Email or phone so we can reach you about this request."
         htmlFor="contact"
         error={showFieldErrors && missing.contact ? "Required." : undefined}
       >

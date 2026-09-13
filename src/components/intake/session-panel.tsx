@@ -1,36 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatSubmittedAt } from "@/lib/format";
 import { coachingFocusLabels, pathwayLabels } from "@/lib/intake";
-import {
-  getServerSession,
-  readSession,
-  subscribeSession,
-} from "@/lib/session";
+import { refreshIntakes } from "@/lib/intakes-store";
+import { useIntakes } from "@/lib/use-intakes";
 
 export function IntakeSessionPanel() {
-  const session = useSyncExternalStore(
-    subscribeSession,
-    readSession,
-    getServerSession
-  );
+  const { intakes, loading, error } = useIntakes();
 
-  if (session.intakes.length === 0) return null;
+  if (loading && intakes.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground" role="status">
+        Loading saved requests…
+      </p>
+    );
+  }
+
+  if (error && intakes.length === 0) {
+    return (
+      <div className="space-y-3 border border-destructive/30 px-4 py-4" role="alert">
+        <p className="text-sm text-destructive">{error}</p>
+        <button
+          type="button"
+          className={cn(buttonVariants({ size: "lg" }))}
+          onClick={() => void refreshIntakes()}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (intakes.length === 0) return null;
 
   return (
     <section className="space-y-4 border border-foreground/12 p-6">
       <div>
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          This session
+          Saved requests
         </p>
-        <h2 className="mt-2 text-sm font-medium">Requests saved in this browser</h2>
+        <h2 className="mt-2 text-sm font-medium">
+          Requests stored in GCP project devo-holding
+        </h2>
       </div>
       <ul className="space-y-3">
-        {session.intakes.map((intake) => {
+        {intakes.map((intake) => {
           const href = intake.lane === "coaching" ? "/coaching" : "/board";
           const label =
             intake.lane === "coaching"

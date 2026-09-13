@@ -5,7 +5,7 @@ import { ScopeNotice } from "@/components/form-notice";
 export const metadata: Metadata = {
   title: "Care-coordination board",
   description:
-    "Referrals, scheduling, records, and follow-ups. Session requests plus labeled example cards.",
+    "Referrals, scheduling, records, and follow-ups. Saved requests plus labeled example cards.",
 };
 
 export default async function BoardPage({
@@ -26,8 +26,8 @@ export default async function BoardPage({
         </h1>
         <p className="text-sm leading-7 text-muted-foreground">
           Status of referrals, scheduling, records, prep, and follow-ups.
-          Example cards are labeled. Intakes submitted in this browser session
-          appear as live cards you can move.
+          Example cards are labeled. Intakes saved to GCP project
+          devo-holding appear as live cards you can move and reload.
         </p>
       </div>
       <ScopeNotice title="No clinical work happens here">

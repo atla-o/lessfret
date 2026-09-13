@@ -5,7 +5,7 @@ import { ScopeNotice } from "@/components/form-notice";
 export const metadata: Metadata = {
   title: "Coaching requests",
   description:
-    "Review life-coach requests saved in this browser session. Guidance, not psychotherapy.",
+    "Review life-coach requests saved to Lessfret. Guidance, not psychotherapy.",
 };
 
 export default async function CoachingPage({
@@ -25,9 +25,9 @@ export default async function CoachingPage({
           Coaching requests
         </h1>
         <p className="text-sm leading-7 text-muted-foreground">
-          Requests from this browser session, plus labeled examples. Move a
-          card when a conversation is set or closed. This is coaching, not
-          therapy, and it is not a clinical record.
+          Saved coaching requests from GCP project devo-holding, plus labeled
+          examples. Move a card when a conversation is set or closed. This is
+          coaching, not therapy, and it is not a clinical record.
         </p>
       </div>
       <ScopeNotice title="No clinical work happens here">

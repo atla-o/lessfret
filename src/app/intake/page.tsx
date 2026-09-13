@@ -22,9 +22,10 @@ export default function IntakePage() {
           Start with the lane you need.
         </h1>
         <p className="max-w-xl text-sm leading-7 text-muted-foreground">
-          These forms validate, save to this browser session, and show empty,
-          error, submitting, and received states. You can submit more than one
-          request. Nothing is sent to a coach, clinic, or cloud yet.
+          These forms validate and save a request to Lessfret in GCP project
+          devo-holding so we can follow up. You will see empty, error,
+          submitting, and received states. You can submit more than one
+          request. This is not therapy and not a medical practice.
         </p>
       </div>
 

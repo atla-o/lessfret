@@ -44,4 +44,5 @@ jobs:
             --source . \
             --project="${PROJECT_ID}" \
             --region="${REGION}" \
-            --no-invoker-iam-check
+            --no-invoker-iam-check \
+            --set-env-vars=GCP_PROJECT=devo-holding,GOOGLE_CLOUD_PROJECT=devo-holding
