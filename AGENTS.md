@@ -8,7 +8,24 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Standing objective (Devo UI-first)
+
+Cursor cloud work for this product: **one promptable environment / one cloud workspace**, kept current.
+
+Priority order for every task unless Devo says otherwise:
+1. **Complete functional UI** — usable end-to-end (persist data, real submit paths, loading/empty/error/success). No blocking coming-soon for core flows.
+2. Black text on **white** backgrounds always — never follow system dark mode / white-on-black.
+3. Ship via merge to `main` (Cloud Run Actions). Do not deploy from the agent unless Devo explicitly says push/ship/merge and deploy.
+
+Parent: Devo (lateral health). Publisher: atla-o. GCP app data: project `devo-holding`. Public hosts on `*.devoutshaman.com` (Cloudflare DNS-only → Cloud Run).
+
+Siblings: Phenomatch, Antiporn, Lessfret, Lightround, Acashi. Holding lander: atla-o/devo → devoutshaman.com.
+
 # Lessfret — Devo agent guide
+
+## This product
+
+Coaching + care coordination intake (**not** therapy).
 
 Lessfret is a Devo (lateral health) product. Publisher identity: **Devo / atla-o**.
 
@@ -58,6 +75,8 @@ Crisis copy: this is not emergency care. People in danger should contact **local
 
 - **Phenomatch** — phenotype matching
 - **Antiporn** — device restriction (often needs a local machine)
+- **Lightround** — counterdecadence fund
+- **Acashi** — WA Healthplanfinder producer portal
 
 Do not collapse these products into Lessfret. Cross-link lightly as Devo family, not as features of this app.
 
