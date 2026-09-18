@@ -21,6 +21,15 @@ Parent: Devo (lateral health). Publisher: atla-o. GCP app data: project `devo-ho
 
 Siblings: Phenomatch, Antiporn, Lessfret, Lightround, Acashi. Holding lander: atla-o/devo → devoutshaman.com.
 
+## Live UI preview
+
+Whenever UI work is **not yet on production `main`** (branch, local/dev server, or an unmerged PR), paste a full clickable preview URL Devo can open in Cursor. Screenshots and recordings are extra, not a substitute.
+
+- Start the app (`npm run dev` — port `43217`).
+- Paste the forwarded-port URL in the reply, including the path under change (example: `http://localhost:43217/legal`).
+- Cursor Agents Window → Forwarded Ports → **Open in internal browser**.
+- Do this every turn the UI is in flux, not only at the end.
+
 # Lessfret — Devo agent guide
 
 ## This product
